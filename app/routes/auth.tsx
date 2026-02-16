@@ -20,10 +20,10 @@ const Auth = () => {
     return (
         <main className="min-h-screen flex items-center justify-center">
             <div className="gradient-border shadow-lg">
-                <section className="flex flex-col gap-8 bg-white rounded-xl p-10">
+                <section className="flex flex-col gap-4 bg-white rounded-xl p-6">
                     <div className="flex flex-col items-center gap-2 text-center">
-                        <h1>Welcome</h1>
-                        <p>Log In to Continue Your Job Journey</p>
+                        <h1 className="text-3xl">Welcome</h1>
+                        <p className="text-gray-500 text-sm">Log In to Continue Your Job Journey</p>
                     </div>
                     <div>
                         {isLoading ? (
