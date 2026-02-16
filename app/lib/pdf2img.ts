@@ -17,7 +17,7 @@ async function loadPdfJs(): Promise<any> {
     loadPromise = import("pdfjs-dist").then((lib) => {
         // Set the worker source to use local file
         // In version 5+, we might need to access GlobalWorkerOptions from the imported lib
-        const workerPath = "public/pdf.worker.min.mjs";
+        const workerPath = "pdf.worker.min.mjs";
         if (lib.GlobalWorkerOptions) {
             lib.GlobalWorkerOptions.workerSrc = workerPath;
         } else if (pdfjsLib?.GlobalWorkerOptions) {

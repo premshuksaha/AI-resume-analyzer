@@ -114,6 +114,9 @@ form {
   .uploader-selected-file {
     @apply flex items-center justify-between p-3 bg-gray-50 rounded-2xl;
   }
+  .logout-button {
+    @apply px-4 py-2 text-red-500 hover:text-red-700 cursor-pointer font-medium transition-colors hover:bg-red-50 rounded-full;
+  }
 }
 
 @utility bg-gradient {
