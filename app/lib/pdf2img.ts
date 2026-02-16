@@ -13,13 +13,24 @@ async function loadPdfJs(): Promise<any> {
     if (loadPromise) return loadPromise;
 
     isLoading = true;
-    // @ts-expect-error - pdfjs-dist/build/pdf.mjs is not a module
-    loadPromise = import("pdfjs-dist/build/pdf.mjs").then((lib) => {
+    // Import the main library from the root package
+    loadPromise = import("pdfjs-dist").then((lib) => {
         // Set the worker source to use local file
-        lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        // In version 5+, we might need to access GlobalWorkerOptions from the imported lib
+        const workerPath = "public/pdf.worker.min.mjs";
+        if (lib.GlobalWorkerOptions) {
+            lib.GlobalWorkerOptions.workerSrc = workerPath;
+        } else if (pdfjsLib?.GlobalWorkerOptions) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+        }
+        
         pdfjsLib = lib;
         isLoading = false;
         return lib;
+    }).catch(err => {
+        isLoading = false;
+        loadPromise = null;
+        throw new Error(`Failed to load PDF.js library: ${err.message}`);
     });
 
     return loadPromise;
@@ -31,23 +42,46 @@ export async function convertPdfToImage(
     try {
         const lib = await loadPdfJs();
 
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
-        const page = await pdf.getPage(1);
+        if (!lib) {
+            return { imageUrl: "", file: null, error: "PDF.js library failed to load" };
+        }
 
-        const viewport = page.getViewport({ scale: 4 });
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = lib.getDocument({ 
+            data: arrayBuffer,
+            // Add some common options for better compatibility
+            useSystemFonts: true,
+            stopAtErrors: false,
+        });
+
+        const pdf = await loadingTask.promise;
+        
+        if (pdf.numPages === 0) {
+            return { imageUrl: "", file: null, error: "The PDF file has no pages" };
+        }
+
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 2 }); // Reduced scale to 2 for better performance/memory
+        
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
+
+        if (!context) {
+            return { imageUrl: "", file: null, error: "Could not get canvas context" };
+        }
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
 
-        if (context) {
-            context.imageSmoothingEnabled = true;
-            context.imageSmoothingQuality = "high";
-        }
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = "high";
 
-        await page.render({ canvasContext: context!, viewport }).promise;
+        const renderContext = {
+            canvasContext: context,
+            viewport: viewport,
+        };
+
+        await page.render(renderContext).promise;
 
         return new Promise((resolve) => {
             canvas.toBlob(
@@ -67,19 +101,20 @@ export async function convertPdfToImage(
                         resolve({
                             imageUrl: "",
                             file: null,
-                            error: "Failed to create image blob",
+                            error: "Failed to create image blob from canvas",
                         });
                     }
                 },
                 "image/png",
-                1.0
-            ); // Set quality to maximum (1.0)
+                0.9 // Slightly reduced quality to save space
+            );
         });
-    } catch (err) {
+    } catch (err: any) {
+        console.error("PDF Conversion Error:", err);
         return {
             imageUrl: "",
             file: null,
-            error: `Failed to convert PDF: ${err}`,
+            error: err.message || String(err),
         };
     }
 }
