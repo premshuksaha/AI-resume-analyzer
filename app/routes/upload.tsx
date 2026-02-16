@@ -59,6 +59,7 @@ const Upload = () => {
         data.feedback = JSON.parse(feedbackText);
         await kv.set(`resume:${uuid}`, JSON.stringify(data));
         setStatusText('Analysis complete, redirecting...');
+        navigate(`/resume/${uuid}`);
     }
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -72,10 +73,7 @@ const Upload = () => {
         const jobDescription = formData.get('job-description') as string;
 
         if (!file) return setStatusText('Error: No file selected');
-
         handleAnalyze({ companyName, jobTitle, jobDescription, file });
-        
-
     }
 
     return (
